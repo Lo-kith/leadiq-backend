@@ -1,8 +1,39 @@
 {
+  "name": "leadiq-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LeadIQ backend - REST API for smart lead qualification and analytics",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "leadiq",
+    "express",
+    "mongodb",
+    "leads"
+  ],
+  "license": "MIT",
   "dependencies": {
-    "express": "^5.2.1",
-    "fs": "^0.0.1-security",
-    "mongoose": "^9.11.1",
-    "nodemon": "^3.1.14"
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5",
+    "multer": "^2.4.0",
+    "papaparse": "^5.4.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.5",
+    "@types/papaparse": "^5.3.15",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
   }
 }
