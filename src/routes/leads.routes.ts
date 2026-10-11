@@ -20,10 +20,15 @@ router.get('/export', validateQuery(listLeadsQuerySchema), asyncHandler(exportLe
 router.post('/import', uploadCsv, asyncHandler(importCsv));
 router.post('/rescore', asyncHandler(rescoreAllLeads));
 
+import { enrichLeadsSchema } from '../validators/lead.schema.js';
+import { enrichLeadsBatch, enrichLeadById } from '../controllers/lead.controller.js';
+
+router.post('/enrich', validateBody(enrichLeadsSchema), asyncHandler(enrichLeadsBatch));
 router.get('/', validateQuery(listLeadsQuerySchema), asyncHandler(listLeads));
 router.post('/', validateBody(createLeadSchema), asyncHandler(createLead));
 
 router.get('/:id', asyncHandler(getLead));
+router.post('/:id/enrich', asyncHandler(enrichLeadById));
 router.patch('/:id', validateBody(updateLeadSchema), asyncHandler(updateLead));
 router.delete('/:id', asyncHandler(deleteLead));
 

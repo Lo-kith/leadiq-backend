@@ -93,6 +93,7 @@ export function serializeLead(doc: LeadDocument | Record<string, unknown>): Lead
     completeness: (obj.completeness as number) ?? 0,
     nextAction: (obj.nextAction as string) ?? null,
     notes: (obj.notes as string) ?? null,
+    enrichment: (obj.enrichment as unknown) ?? null,
     breakdown: (obj.breakdown as LeadRecord['breakdown']) ?? {
       factors: [],
       missing: [],

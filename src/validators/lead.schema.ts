@@ -61,6 +61,10 @@ export const listLeadsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
+export const enrichLeadsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(50),
+});
+
 export const scoringConfigSchema = z
   .object({
     targetIndustries: z.array(z.string().trim().min(1)).max(50),

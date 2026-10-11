@@ -58,6 +58,7 @@ export interface LeadRecord {
   completeness: number;
   nextAction: string | null;
   notes: string | null;
+  enrichment?: unknown | null;
   breakdown: ScoreBreakdown;
   createdAt: string;
   updatedAt: string;

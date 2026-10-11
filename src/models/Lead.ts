@@ -32,6 +32,7 @@ const leadSchema = new Schema(
     completeness: { type: Number, default: 0 },
     nextAction: { type: String, default: null },
     notes: { type: String, default: null },
+    enrichment: { type: Schema.Types.Mixed, default: null },
     breakdown: {
       factors: { type: [scoringFactorSchema], default: [] },
       missing: { type: [String], default: [] },
