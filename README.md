@@ -220,21 +220,74 @@ A fictional sample dataset is available at `samples/sample-leads.csv`. Supported
 
 ## Docker Setup
 
-### Prerequisites
-- Docker and Docker Compose installed
-- Internet access for first model download (~2-4GB)
-- ~8GB RAM recommended
+Run all services (MongoDB + Ollama + model init + backend) with Docker Compose.
 
-### Quick Start
-`ash
+### Prerequisites
+
+- Docker and Docker Compose installed
+- Internet access for the first model download (~2-4 GB)
+- ~8 GB RAM recommended
+
+### Quick start
+
+```bash
 docker compose up --build
-`
+```
 
 ### Commands
-`ash
-docker compose up --build -d
-docker compose logs -f
-docker compose down
-`
-docker compose down -v removes named volumes (deletes models and DB data).
-Run docker compose up --build from backend directory to start all services.
+
+```bash
+docker compose up --build -d   # start detached
+docker compose logs -f         # follow logs
+docker compose down            # stop and remove containers
+```
+
+> `docker compose down -v` also removes the named volumes, deleting the MongoDB
+> data and the downloaded Ollama models.
+
+Run these from the `leadiq-backend` directory (the compose file builds the
+frontend from `../leadiq-frontend`).
+
+## Deploy to Render
+
+The repository includes a `render.yaml` blueprint. Render must run the
+TypeScript build, otherwise `node dist/index.js` fails with `MODULE_NOT_FOUND`,
+because `dist/` is gitignored and not present in the repository.
+
+### Option A - Blueprint (uses render.yaml)
+
+New -> Blueprint -> select this repo. Render reads `render.yaml`:
+
+- Build: `npm ci --include=dev && npm run build`
+- Start: `npm start`
+- Health check: `/api/health`
+
+### Option B - Existing web service (dashboard)
+
+In **Settings**, set:
+
+- **Build Command:** `npm install --include=dev && npm run build`
+- **Start Command:** `npm start`
+
+Then **Manual Deploy -> Clear build cache & deploy**.
+
+> `--include=dev` is required: `typescript` is a devDependency, so if
+> `NODE_ENV=production` causes the install to skip dev dependencies the build
+> fails with no `dist/` output.
+
+### Required environment variables
+
+| Key                   | Notes                                             |
+| --------------------- | ------------------------------------------------- |
+| `MONGODB_URI`         | MongoDB Atlas connection string                   |
+| `FRONTEND_ORIGIN`     | dev frontend origin, e.g. `http://localhost:5173` |
+| `FRONTEND_ORIGIN_PROD`| deployed frontend URL (CORS; required in production) |
+| `OLLAMA_URL`          | reachable Ollama base URL for AI features         |
+| `OLLAMA_MODEL`        | defaults to `qwen3:4b`                            |
+
+> The Render free web service cannot host Ollama in-container. Point
+> `OLLAMA_URL` at a reachable Ollama instance, otherwise AI features fail at
+> runtime (the server still boots).
+
+After deploy, confirm `GET /api/health` returns `status: "ok"` and
+`db: "connected"`.
