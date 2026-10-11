@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { askLeads } from '../services/ask.service.js';
-import { getOllamaStatus } from '../services/ollama.service.js';
+import { getOllamaStatus, warmOllamaModel } from '../services/ollama.service.js';
 import { env } from '../config/env.js';
 import type { AskInput } from '../validators/ask.schema.js';
 
@@ -26,6 +26,10 @@ export async function ask(req: Request, res: Response): Promise<void> {
 
 export async function askStatus(_req: Request, res: Response): Promise<void> {
   const status = await getOllamaStatus();
+  // Preload the model in the background so the first question is not slowed by a cold start.
+  if (status.available && status.modelAvailable && !status.loaded) {
+    void warmOllamaModel();
+  }
   res.json({
     data: {
       provider: 'ollama',
@@ -33,6 +37,7 @@ export async function askStatus(_req: Request, res: Response): Promise<void> {
       model: status.model,
       available: status.available,
       modelAvailable: status.modelAvailable,
+      loaded: status.loaded,
     },
   });
 }

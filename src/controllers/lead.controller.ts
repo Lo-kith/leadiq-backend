@@ -23,7 +23,7 @@ export function buildFilter(query: Partial<ListLeadsQuery>): Record<string, unkn
   }
   if (query.q) {
     const rx = new RegExp(escapeRegex(query.q), 'i');
-    filter.$or = [{ companyName: rx }, { contactName: rx }, { email: rx }, { websiteDomain: rx }];
+    filter.$or = [{ companyName: rx }, { contactName: rx }, { email: rx }, { websiteDomain: rx }, { jobTitle: rx }];
   }
   if (query.industry) filter.industry = new RegExp(escapeRegex(query.industry), 'i');
   if (query.location) filter.location = new RegExp(escapeRegex(query.location), 'i');
@@ -109,6 +109,7 @@ export async function updateLead(req: Request, res: Response): Promise<void> {
     employeeCount: req.body.employeeCount !== undefined ? req.body.employeeCount : existing.employeeCount,
     revenue: req.body.revenue !== undefined ? req.body.revenue : existing.revenue,
     contactName: req.body.contactName !== undefined ? req.body.contactName : existing.contactName,
+    jobTitle: req.body.jobTitle !== undefined ? req.body.jobTitle : existing.jobTitle,
     email: req.body.email !== undefined ? req.body.email : existing.email,
     linkedinUrl: req.body.linkedinUrl !== undefined ? req.body.linkedinUrl : existing.linkedinUrl,
     leadSource: req.body.leadSource !== undefined ? req.body.leadSource : existing.leadSource,

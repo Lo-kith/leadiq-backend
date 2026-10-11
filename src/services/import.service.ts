@@ -18,6 +18,7 @@ const HEADER_ALIASES: Record<string, string[]> = {
   employeeCount: ['employeecount', 'employees', 'employee count', 'headcount', 'size', 'companysize', 'numberofemployees', 'num_employees', 'staff'],
   revenue: ['revenue', 'annualrevenue', 'arr', 'mrr', 'annual revenue', 'turnover'],
   contactName: ['contactname', 'contact', 'contact name', 'fullname', 'full name', 'person', 'leadname', 'primarycontact'],
+  jobTitle: ['jobtitle', 'title', 'position', 'role', 'designation'],
   email: ['email', 'e-mail', 'emailaddress', 'email address', 'workemail', 'contactemail'],
   linkedinUrl: ['linkedin', 'linkedinurl', 'linkedin url', 'linkedinprofile', 'linkedin profile'],
   leadSource: ['leadsource', 'lead source', 'source', 'channel'],

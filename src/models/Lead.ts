@@ -22,6 +22,7 @@ const leadSchema = new Schema(
     employeeCount: { type: Number, default: null },
     revenue: { type: Number, default: null },
     contactName: { type: String, default: null },
+    jobTitle: { type: String, default: null },
     email: { type: String, default: null, index: true },
     linkedinUrl: { type: String, default: null },
     leadSource: { type: String, default: null },

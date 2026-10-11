@@ -18,6 +18,7 @@ export interface LeadInput {
   employeeCount?: number | null;
   revenue?: number | null;
   contactName?: string | null;
+  jobTitle?: string | null;
   email?: string | null;
   linkedinUrl?: string | null;
   leadSource?: string | null;
@@ -42,6 +43,7 @@ export function buildScoredPayload(
     employeeCount: input.employeeCount ?? null,
     revenue: input.revenue ?? null,
     contactName: toTrimmedString(input.contactName),
+    jobTitle: toTrimmedString(input.jobTitle),
     email,
     linkedinUrl: normalizeLinkedIn(input.linkedinUrl ?? null),
     leadSource: toTrimmedString(input.leadSource),
@@ -81,6 +83,7 @@ export function serializeLead(doc: LeadDocument | Record<string, unknown>): Lead
     employeeCount: (obj.employeeCount as number) ?? null,
     revenue: (obj.revenue as number) ?? null,
     contactName: (obj.contactName as string) ?? null,
+    jobTitle: (obj.jobTitle as string) ?? null,
     email: (obj.email as string) ?? null,
     linkedinUrl: (obj.linkedinUrl as string) ?? null,
     leadSource: (obj.leadSource as string) ?? null,

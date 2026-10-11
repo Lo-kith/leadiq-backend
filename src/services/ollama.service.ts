@@ -9,7 +9,7 @@ export interface ChatMessage {
 }
 
 interface OllamaChatResponse {
-  message?: { role?: string; content?: string };
+  message?: { role?: string; content?: string; thinking?: string };
   error?: string;
 }
 
@@ -21,6 +21,7 @@ export interface OllamaStatus {
   available: boolean;
   model: string;
   modelAvailable: boolean;
+  loaded: boolean;
   models: string[];
 }
 
@@ -50,21 +51,71 @@ export async function listOllamaModels(
   }
 }
 
+export async function listLoadedModels(
+  timeoutMs: number = env.ollamaStatusTimeoutMs,
+): Promise<string[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(endpoint('/api/ps'), { signal: controller.signal });
+    if (!res.ok) return [];
+    const data = (await res.json()) as OllamaTagsResponse;
+    return (data.models ?? []).map((m) => m.name ?? '').filter(Boolean);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getOllamaStatus(): Promise<OllamaStatus> {
-  const models = await listOllamaModels();
+  const [models, loaded] = await Promise.all([listOllamaModels(), listLoadedModels()]);
   return {
     available: models.length > 0,
     model: env.ollamaModel,
     modelAvailable: models.some((name) => modelMatches(name, env.ollamaModel)),
+    loaded: loaded.some((name) => modelMatches(name, env.ollamaModel)),
     models,
   };
 }
 
+/**
+ * Loads the model into memory (if not already) and keeps it warm for
+ * `OLLAMA_KEEP_ALIVE`, so the first real question does not pay the cold-start cost.
+ */
+export async function warmOllamaModel(): Promise<boolean> {
+  if (!env.ollamaWarm) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), env.ollamaTimeoutMs);
+  try {
+    const res = await fetch(endpoint('/api/chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: env.ollamaModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        stream: false,
+        think: false,
+        keep_alive: env.ollamaKeepAlive,
+        options: { num_predict: 1 },
+      }),
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function chat(
   messages: ChatMessage[],
-  options: { model?: string } = {},
+  options: { model?: string; think?: boolean; numPredict?: number } = {},
 ): Promise<string> {
   const model = options.model ?? env.ollamaModel;
+  const think = options.think ?? true;
+  const numPredict = options.numPredict ?? env.ollamaNumPredict;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.ollamaTimeoutMs);
 
@@ -76,7 +127,9 @@ export async function chat(
         model,
         messages,
         stream: false,
-        options: { temperature: 0.2 },
+        think,
+        keep_alive: env.ollamaKeepAlive,
+        options: { temperature: 0.2, num_predict: numPredict },
       }),
       signal: controller.signal,
     });
