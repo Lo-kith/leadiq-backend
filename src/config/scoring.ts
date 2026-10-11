@@ -15,10 +15,11 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
   minRevenue: 1_000_000,
   weights: {
     industry: 25,
-    companySize: 20,
-    revenue: 15,
-    website: 10,
+    companySize: 15,
+    revenue: 10,
+    website: 5,
     contact: 15,
+    persona: 15,
     completeness: 15,
   },
   priorityThresholds: {

@@ -29,6 +29,7 @@ export interface ScoringConfig {
     revenue: number;
     website: number;
     contact: number;
+    persona: number;
     completeness: number;
   };
   priorityThresholds: {
@@ -47,6 +48,7 @@ export interface LeadRecord {
   employeeCount: number | null;
   revenue: number | null;
   contactName: string | null;
+  jobTitle: string | null;
   email: string | null;
   linkedinUrl: string | null;
   leadSource: string | null;
@@ -56,6 +58,7 @@ export interface LeadRecord {
   completeness: number;
   nextAction: string | null;
   notes: string | null;
+  enrichment?: unknown | null;
   breakdown: ScoreBreakdown;
   createdAt: string;
   updatedAt: string;

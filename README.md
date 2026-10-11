@@ -217,3 +217,24 @@ A fictional sample dataset is available at `samples/sample-leads.csv`. Supported
 - No web scraping, enrichment, email verification or AI-generated intelligence.
 - CSV import is synchronous and best suited to moderate file sizes.
 - Authentication/authorization is out of scope for this challenge.
+
+## Docker Setup
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Internet access for first model download (~2-4GB)
+- ~8GB RAM recommended
+
+### Quick Start
+`ash
+docker compose up --build
+`
+
+### Commands
+`ash
+docker compose up --build -d
+docker compose logs -f
+docker compose down
+`
+docker compose down -v removes named volumes (deletes models and DB data).
+Run docker compose up --build from backend directory to start all services.

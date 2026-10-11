@@ -31,6 +31,7 @@ const baseFields = {
   employeeCount: nullableNumber,
   revenue: nullableNumber,
   contactName: nullableString,
+  jobTitle: nullableString,
   email: nullableEmail,
   linkedinUrl: nullableString,
   leadSource: nullableString,
@@ -60,24 +61,42 @@ export const listLeadsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-export const scoringConfigSchema = z.object({
-  targetIndustries: z.array(z.string().trim().min(1)).max(50),
-  minEmployees: z.number().int().min(0),
-  maxEmployees: z.number().int().min(0),
-  minRevenue: z.number().min(0),
-  weights: z.object({
-    industry: z.number().min(0).max(100),
-    companySize: z.number().min(0).max(100),
-    revenue: z.number().min(0).max(100),
-    website: z.number().min(0).max(100),
-    contact: z.number().min(0).max(100),
-    completeness: z.number().min(0).max(100),
-  }),
-  priorityThresholds: z.object({
-    high: z.number().min(0).max(100),
-    medium: z.number().min(0).max(100),
-  }),
+export const enrichLeadsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(50),
 });
+
+export const scoringConfigSchema = z
+  .object({
+    targetIndustries: z.array(z.string().trim().min(1)).max(50),
+    minEmployees: z.number().int().min(0),
+    maxEmployees: z.number().int().min(0),
+    minRevenue: z.number().min(0),
+    weights: z.object({
+      industry: z.number().min(0).max(100),
+      companySize: z.number().min(0).max(100),
+      revenue: z.number().min(0).max(100),
+      website: z.number().min(0).max(100),
+      contact: z.number().min(0).max(100),
+      persona: z.number().min(0).max(100),
+      completeness: z.number().min(0).max(100),
+    }),
+    priorityThresholds: z.object({
+      high: z.number().min(0).max(100),
+      medium: z.number().min(0).max(100),
+    }),
+  })
+  .refine((data) => data.priorityThresholds.high > data.priorityThresholds.medium, {
+    message: 'high threshold must be greater than medium threshold',
+    path: ['priorityThresholds', 'high'],
+  })
+  .refine(
+    (data) => {
+      const w = data.weights;
+      const sum = w.industry + w.companySize + w.revenue + w.website + w.contact + w.persona + w.completeness;
+      return Math.abs(sum - 100) < 1e-6;
+    },
+    { message: 'weights must sum to 100', path: ['weights'] },
+  );
 
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;

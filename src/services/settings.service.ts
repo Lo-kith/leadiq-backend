@@ -8,7 +8,24 @@ export async function getScoringConfig(): Promise<ScoringConfig> {
   try {
     const doc = await Setting.findOne({ key: SCORING_KEY }).lean();
     if (doc?.scoringConfig) {
-      return doc.scoringConfig as ScoringConfig;
+      const saved = doc.scoringConfig as Partial<ScoringConfig>;
+      const merged: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        ...saved,
+        targetIndustries: saved.targetIndustries ?? DEFAULT_SCORING_CONFIG.targetIndustries,
+        minEmployees: saved.minEmployees ?? DEFAULT_SCORING_CONFIG.minEmployees,
+        maxEmployees: saved.maxEmployees ?? DEFAULT_SCORING_CONFIG.maxEmployees,
+        minRevenue: saved.minRevenue ?? DEFAULT_SCORING_CONFIG.minRevenue,
+        priorityThresholds: {
+          ...DEFAULT_SCORING_CONFIG.priorityThresholds,
+          ...(saved.priorityThresholds ?? {}),
+        },
+        weights: {
+          ...DEFAULT_SCORING_CONFIG.weights,
+          ...(saved.weights ?? {}),
+        },
+      };
+      return merged;
     }
   } catch {
     // Fall through to defaults if settings cannot be read.

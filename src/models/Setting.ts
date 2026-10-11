@@ -12,6 +12,7 @@ const scoringConfigSchema = new Schema(
       revenue: { type: Number, required: true },
       website: { type: Number, required: true },
       contact: { type: Number, required: true },
+      persona: { type: Number, required: true },
       completeness: { type: Number, required: true },
     },
     priorityThresholds: {

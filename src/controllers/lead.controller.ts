@@ -7,6 +7,8 @@ import { buildScoredPayload, serializeLead, type LeadInput } from '../services/l
 import { computeScore, computeCompleteness } from '../services/scoring.service.js';
 import type { ListLeadsQuery } from '../validators/lead.schema.js';
 import type { Paginated, LeadRecord } from '../types/lead.js';
+import { enrichLead, mapLimit } from '../services/enrich.service.js';
+import { EnrichmentCache } from '../models/EnrichmentCache.js';
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -23,7 +25,7 @@ export function buildFilter(query: Partial<ListLeadsQuery>): Record<string, unkn
   }
   if (query.q) {
     const rx = new RegExp(escapeRegex(query.q), 'i');
-    filter.$or = [{ companyName: rx }, { contactName: rx }, { email: rx }, { websiteDomain: rx }];
+    filter.$or = [{ companyName: rx }, { contactName: rx }, { email: rx }, { websiteDomain: rx }, { jobTitle: rx }];
   }
   if (query.industry) filter.industry = new RegExp(escapeRegex(query.industry), 'i');
   if (query.location) filter.location = new RegExp(escapeRegex(query.location), 'i');
@@ -109,6 +111,7 @@ export async function updateLead(req: Request, res: Response): Promise<void> {
     employeeCount: req.body.employeeCount !== undefined ? req.body.employeeCount : existing.employeeCount,
     revenue: req.body.revenue !== undefined ? req.body.revenue : existing.revenue,
     contactName: req.body.contactName !== undefined ? req.body.contactName : existing.contactName,
+    jobTitle: req.body.jobTitle !== undefined ? req.body.jobTitle : existing.jobTitle,
     email: req.body.email !== undefined ? req.body.email : existing.email,
     linkedinUrl: req.body.linkedinUrl !== undefined ? req.body.linkedinUrl : existing.linkedinUrl,
     leadSource: req.body.leadSource !== undefined ? req.body.leadSource : existing.leadSource,
@@ -152,4 +155,95 @@ export async function rescoreAllLeads(_req: Request, res: Response): Promise<voi
     result.updated += 1;
   }
   res.json({ data: result });
+}
+
+export async function enrichLeadById(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  if (!isValidObjectId(id)) throw AppError.badRequest('Invalid lead id');
+  const lead = await Lead.findById(id);
+  if (!lead) throw AppError.notFound('Lead not found');
+
+  const email = (lead.email as string) ?? null;
+  let domain: string | null = (lead.websiteDomain as string) ?? null;
+  if (!domain && lead.website) {
+    domain = String(lead.website).replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0] || null;
+  }
+
+  let result: Awaited<ReturnType<typeof enrichLead>> | null = null;
+  if (domain) {
+    try {
+      const cached = await EnrichmentCache.findOne({ domain }).lean();
+      if (cached?.data) {
+        result = cached.data as Awaited<ReturnType<typeof enrichLead>>;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!result) {
+    result = await enrichLead({ email, websiteDomain: domain });
+    if (domain) {
+      try {
+        await EnrichmentCache.updateOne(
+          { domain },
+          { domain, data: result, expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+          { upsert: true },
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const updates: Record<string, unknown> = { enrichment: result };
+  if (result.mxValid === false) {
+    updates.nextAction = 'Email domain has no mail server - verify contact';
+  }
+  Object.assign(lead, updates);
+  const saved = await lead.save();
+  res.json({ data: serializeLead(saved) });
+}
+
+export async function enrichLeadsBatch(req: Request, res: Response): Promise<void> {
+  const { ids } = req.body as { ids: string[] };
+  const leads = await Lead.find({ _id: { $in: ids.filter((x) => isValidObjectId(x)) } });
+  const results: LeadRecord[] = [];
+  await mapLimit(leads, 5, async (lead) => {
+    let domain: string | null = (lead.websiteDomain as string) ?? null;
+    if (!domain && lead.website) {
+      domain = String(lead.website).replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0] || null;
+    }
+    let result: Awaited<ReturnType<typeof enrichLead>> | null = null;
+    if (domain) {
+      try {
+        const cached = await EnrichmentCache.findOne({ domain }).lean();
+        if (cached?.data) result = cached.data as Awaited<ReturnType<typeof enrichLead>>;
+      } catch {
+        // ignore
+      }
+    }
+    if (!result) {
+      result = await enrichLead({ email: lead.email as string, websiteDomain: domain });
+      if (domain) {
+        try {
+          await EnrichmentCache.updateOne(
+            { domain },
+            { domain, data: result, expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+            { upsert: true },
+          );
+        } catch {
+          // ignore
+        }
+      }
+    }
+    const updates: Record<string, unknown> = { enrichment: result };
+    if (result.mxValid === false) {
+      updates.nextAction = 'Email domain has no mail server - verify contact';
+    }
+    Object.assign(lead, updates);
+    await lead.save();
+    results.push(serializeLead(lead));
+  });
+  res.json({ data: results });
 }
